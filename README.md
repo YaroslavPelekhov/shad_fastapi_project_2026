@@ -1,50 +1,85 @@
-## Изменения по урокам
+# Book Library App (MTS SHAD)
 
-**Урок 1**. Реализовали ручки приложения с фейковой базой и сериализаторами.
-**Урок 2**. Провели рефакторинг. Разложили сериализаторы и ручки по отдельным пакетам.
-Подключили настоящую БД в Докере и создали модели.
-**Урок 3**. Провели рефакторинг.
+Учебное FastAPI-приложение, доработанное под платформу объявлений о продаже книг.
 
-Написали по одному тесту к ручкам.
+## Что реализовано
 
-Настроили pytest и фикстуры. Пример почти идеальной настройки фикстур для работы с БД.
+### Модели и связи
 
-ОШИБКА C ТЕСТАМИ БЫЛА ВЫЗВАНА ОДНОВЛЕНИЕМ БИБЛИОТЕКИ pytest_asyncio https://pytest-asyncio.readthedocs.io/en/latest/how-to-guides/migrate_from_0_21.html#how-to-guides-migrate-from-0-21
+- Добавлена модель `Seller` с полями:
+  - `id`
+  - `first_name`
+  - `last_name`
+  - `e_mail`
+  - `password`
+- В модель `Book` добавлено поле `seller_id`.
+- Связь `Seller (1) -> (N) Book`.
+- При удалении продавца удаляются все его книги (cascade delete).
 
-Добавили .env файл и модуль settings для хранения переменных окружения и их легкого использования.
+### Эндпоинты Seller
 
-**Урок 4**. Провели рефакторинг. Добавили сервисный слой.
+- `POST /api/v1/seller` — регистрация продавца.
+- `GET /api/v1/seller` — список всех продавцов (без `password` в ответе).
+- `GET /api/v1/seller/{seller_id}` — продавец + его книги (без `password`).
+- `PUT /api/v1/seller/{seller_id}` — обновление данных продавца (без обновления пароля и книг).
+- `DELETE /api/v1/seller/{seller_id}` — удаление продавца и его книг.
 
-## Структура проекта
+### JWT авторизация (дополнительное задание)
 
-Для удобства и соблюдения принципов чистой архитектуры проект разделен на следующие пакеты:
+- `POST /api/v1/token` — получение токена по `email + password`.
+- Формат заголовка: `Authorization: Bearer <token>`.
+- Защищены эндпоинты:
+  - `GET /api/v1/seller/{seller_id}`
+  - `POST /api/v1/books/`
+  - `PUT /api/v1/books/{book_id}`
 
-- `configurations` — слой для хранения конфигураций, констант, параметров и настроек проекта.
+## Локальный запуск
 
-- `models` — слой для хранения моделей (ORM или Data Classes).
+### 1) Установка зависимостей
 
-- `routers` — слой для настроек урлов для различных эндпоинтов.
+```bash
+pip install -r requirements.txt
+```
 
-- `schemas` — слой содержащий схемы pydantic, отвечает за сериализацию и валидацию.
+### 2) Настройка переменных окружения
 
-- `services` — слой содержащий бизнес-логику и работу с ORM.
+Создайте `.env` по примеру `.env_example` и укажите подключение к PostgreSQL.
 
-## Полезные ссылки (в основном на английском)
+Минимально нужны:
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USERNAME`
+- `DB_PASSWORD`
 
-#### По Fastapi:
+Для тестов используйте отдельную БД:
+- `DB_TEST_NAME=fastapi_project_test_db`
 
-1. [Официальная документация](https://fastapi.tiangolo.com/)
+### 3) Запуск приложения
 
-2. [Лучшие практики](https://github.com/zhanymkanov/fastapi-best-practices)
+```bash
+python -m uvicorn src.main:app --host 127.0.0.1 --port 8010 --reload
+```
 
-3. [Собрание полезных библиотек и пакетов](https://github.com/mjhea0/awesome-fastapi)
+Swagger UI:
+- `http://127.0.0.1:8010/docs`
 
-4. [Полезная статья по структуре проекта](https://camillovisini.com/coding/abstracting-fastapi-services)
+## Тесты
 
-#### По принципам REST архитектуры:
+Запуск:
 
-5. [Полезные рекомендации по правильному написанию REST API](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs>)
+```bash
+python -m pytest src
+```
 
-#### По SQLAlchemy:
+Текущее состояние: `23 passed`.
 
-6. [Хороший бесплатный видеокурс на YouTube. На русском языке](https://youtube.com/playlist?list=PLeLN0qH0-mCXARD_K-USF2wHctxzEVp40&si=V7rZGqu1KVJvidLz)
+## Ручная проверка в Swagger/Postman
+
+1. Создать продавца через `POST /api/v1/seller`.
+2. Получить токен через `POST /api/v1/token`.
+3. Нажать `Authorize` в Swagger и вставить токен в формате `Bearer <token>`.
+4. Проверить защищенные ручки:
+   - `POST /api/v1/books/`
+   - `PUT /api/v1/books/{book_id}`
+   - `GET /api/v1/seller/{seller_id}`

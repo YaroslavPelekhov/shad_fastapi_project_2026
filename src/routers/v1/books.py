@@ -3,13 +3,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.configurations.auth import get_current_seller
 from src.configurations.database import get_async_session
+from src.models.sellers import Seller
 from src.schemas import IncomingBook, PatchBook, ReturnedAllBooks, ReturnedBook
 from src.services import BookService
 
 books_router = APIRouter(prefix="/books", tags=["books"])
 
 DBSession = Annotated[AsyncSession, Depends(get_async_session)]
+CurrentSeller = Annotated[Seller, Depends(get_current_seller)]
 
 
 @books_router.get("/", response_model=ReturnedAllBooks)
@@ -19,8 +22,10 @@ async def get_all_books(session: DBSession):
 
 
 @books_router.post("/", response_model=ReturnedBook, status_code=status.HTTP_201_CREATED)
-async def create_book(book: IncomingBook, session: DBSession):
+async def create_book(book: IncomingBook, session: DBSession, _: CurrentSeller):
     new_book = await BookService(session).add_book(book)
+    if new_book is None:
+        return Response(status_code=status.HTTP_404_NOT_FOUND)
 
     return new_book
 
@@ -45,7 +50,7 @@ async def delete_book(book_id: int, session: DBSession):
 
 
 @books_router.put("/{book_id}", response_model=ReturnedBook)
-async def update_book(book_id: int, new_book_data: ReturnedBook, session: DBSession):
+async def update_book(book_id: int, new_book_data: ReturnedBook, session: DBSession, _: CurrentSeller):
 
     updated_book = await BookService(session).update_book(book_id, new_book_data)
 

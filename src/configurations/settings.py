@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     db_password: str
     db_test_name: str = "fastapi_project_test_db"
     max_connection_count: int = 10
+    jwt_secret_key: str = "change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60
 
     @property
     def database_url(self) -> str:
